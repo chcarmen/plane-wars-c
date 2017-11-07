@@ -43,7 +43,8 @@ typedef struct
     SIZE             size;         /* Plane size                               */
     PLANETYPE        type;         /* Plane type                               */
     int              moveSpeed;    /* Each plane may have different move speed */
-    int              hitCounter;   /* Plane crashes only when hitCounter achieves maximum. Possible value: small:0-1  middle:0-2  big:0-3 */
+    int              hitCounter;   /* Plane crashes only when hitCounter achieves maximum. 
+                                   Possible value: small:0-1,  middle:0-2,  big:0-3, After crash: -1 */
 }PLANE, *PPLANE;
 
 /* The game window has 3 diff statuses:
@@ -70,8 +71,7 @@ VOID              UpdatePlaneInfo(BOOL bReset, UINT uiIndex, UINT uiSpeed);
 VOID              DrawWindow(HDC hdc);
 VOID              TimerProc(HWND hWnd);
 VOID              LButtonDownProc(HWND hWnd, LPARAM lParam);
-BOOL              IsHit(HWND hWnd, POINT ptMouse, UINT *pIndex);
-VOID              Crash(HWND hWnd, PPLANE pDstPlane);
+VOID              Hit(POINT ptMouse);
 BOOL              CheckGameStartButtonDown(POINT ptMouse);
 BOOL              CheckGameReStartButtonDown(POINT ptMouse);
 BOOL              CheckGameExitButtonDown(POINT ptMouse);

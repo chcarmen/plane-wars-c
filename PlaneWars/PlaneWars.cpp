@@ -328,15 +328,15 @@ VOID UpdatePlaneInfo(BOOL bReset, UINT uiIndex, UINT uiSpeed)
         /* idx is a random value: 0 - small, 1 - middle, 2 - big */
         idx = rand() % 3;
 
-        if ((idx == 2) && !g_bBigAdded)
-        {
-            g_bBigAdded = TRUE;
-        }
-
         /* Ensure there is only one big plane, idx == 2 only once */
         while ((idx == 2) && g_bBigAdded)
         {
             idx = rand() % 3;
+        }
+
+        if ((idx == 2) && !g_bBigAdded)
+        {
+            g_bBigAdded = TRUE;
         }
 
         GetObject(g_hBmp[idx + 1], sizeof(BITMAP), &bmp);
@@ -441,8 +441,14 @@ VOID DrawWindow(HDC hdc)
                 TransparentBlt(
                     hdcBmp, g_tPlaneArray[i].pos.x, g_tPlaneArray[i].pos.y,
                     g_tPlaneArray[i].size.cx, g_tPlaneArray[i].size.cy,
-                    hdcMem, 0, 0, g_tPlaneArray[i].size.cx, g_tPlaneArray[i].size.cy,
+                    hdcMem, 0, g_tPlaneArray[i].hitCounter * g_tPlaneArray[i].size.cy,
+                    g_tPlaneArray[i].size.cx, g_tPlaneArray[i].size.cy,
                     RGB(255, 255, 255));
+
+                if (g_tPlaneArray[i].hitCounter == g_tPlaneArray[i].type + 1)
+                {
+                    g_tPlaneArray[i].hitCounter = -1;
+                }
             }
         }
         break;
@@ -532,6 +538,21 @@ VOID TimerProc(HWND hWnd)
 {
     for (UINT i = 0; i < PLANECOUNT; i++)
     {
+        /* After crash picture is showed, update score and plane info in crash postion */
+        if (g_tPlaneArray[i].hitCounter == -1)
+        {
+            g_uiScore++;
+
+            g_tPlaneArray[i].hitCounter = 0;
+
+            if (g_tPlaneArray[i].type == BIG)
+            {
+                g_bBigAdded = FALSE;
+            }
+
+            UpdatePlaneInfo(FALSE, i, 3);
+        }
+
         /* Move down moveSpeed every 50 ms */
         g_tPlaneArray[i].pos.y += g_tPlaneArray[i].moveSpeed;
 
@@ -585,13 +606,7 @@ VOID LButtonDownProc(HWND hWnd, LPARAM lParam)
     case RUN:
         {
             /* Check if a plane is hit */
-            if (IsHit(hWnd, ptMouse, &index))
-            {
-                UpdatePlaneInfo(FALSE, index, 3);
-
-                /* update score */
-                g_uiScore++;
-            }
+            Hit(ptMouse);
         }
         break;
     case GAMEOVER:
@@ -616,20 +631,16 @@ VOID LButtonDownProc(HWND hWnd, LPARAM lParam)
 
 
 /******************************************************
-* Function name:  IsHit()
+* Function name:  Hit()
 * Purpose:        Check if a plane is hit
-* Input:
-*    hWnd
-*    ptMouse
-* Output:
-*    pIndex:      Index of plane which is hit
-* Return:         If hit return TRUE, else return FALSE
+* Input:          ptMouse
+* Output:         N/A
+* Return:         N/A
 *****************************************************/
-BOOL IsHit(HWND hWnd, POINT ptMouse, UINT *pIndex)
+VOID Hit(POINT ptMouse)
 {
-    RECT    rc;
-
-    assert(pIndex != NULL);
+    RECT           rc;
+    MCI_PLAY_PARMS mciPlay;
 
     for (UINT i = 0; i<PLANECOUNT; i++)
     {
@@ -642,78 +653,15 @@ BOOL IsHit(HWND hWnd, POINT ptMouse, UINT *pIndex)
         {
             g_tPlaneArray[i].hitCounter++;
 
-            Crash(hWnd, g_tPlaneArray + i);
+            assert(g_tPlaneArray[i].hitCounter < g_tPlaneArray[i].type + 2);
 
-            if (g_tPlaneArray[i].hitCounter == g_tPlaneArray[i].type + 1)
-            {
-                g_tPlaneArray[i].hitCounter = 0;
+            /* Play crash music */
+            mciPlay.dwFrom = 0;
+            mciSendCommand(g_uiMusicDeviceID, MCI_PLAY, MCI_FROM, (DWORD)&mciPlay);
 
-                if (g_tPlaneArray[i].type == BIG)
-                {
-                    g_bBigAdded = FALSE;
-                }
-
-                *pIndex = i;
-
-                return TRUE;
-            }
+            break;
         }
     }
-
-    return FALSE;
-}
-
-
-/******************************************************
-* Function name:  Crash()
-* Purpose:        Show crash effect
-* Input:
-*    hWnd
-*    pDstPlane:   Pointer of plane which is hit
-* Output:         N/A
-* Return:         N/A
-*****************************************************/
-VOID Crash(HWND hWnd, PPLANE pDstPlane)
-{
-    HDC            hdc, hdcMem;
-    MCI_PLAY_PARMS mciPlay;
-
-    assert(pDstPlane != NULL);
-    
-    /* Play crash music */
-    mciPlay.dwFrom = 0;
-    mciSendCommand(g_uiMusicDeviceID, MCI_PLAY, MCI_FROM, (DWORD)&mciPlay);
-
-    /* Draw crash plane */
-    hdc = GetDC(hWnd);
-    hdcMem = CreateCompatibleDC(hdc);
-
-    switch (pDstPlane->type)
-    {
-    case SMALL:
-        SelectObject(hdcMem, g_hBmp[1]);
-        break;
-
-    case MIDDLE:
-        SelectObject(hdcMem, g_hBmp[2]);
-        break;
-
-    case BIG:
-        SelectObject(hdcMem, g_hBmp[3]);
-        break;
-    }
-
-    TransparentBlt(hdc, pDstPlane->pos.x, pDstPlane->pos.y,
-        pDstPlane->size.cx, pDstPlane->size.cy,
-        hdcMem, 0, pDstPlane->hitCounter * pDstPlane->size.cy,
-        pDstPlane->size.cx, pDstPlane->size.cy,
-        RGB(255, 255, 255));
-
-    /* Keep crash effect for a while */
-    Sleep(30);
-
-    DeleteDC(hdcMem);
-    ReleaseDC(hWnd, hdc);
 }
 
 
