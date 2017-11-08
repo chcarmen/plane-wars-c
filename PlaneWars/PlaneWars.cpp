@@ -268,7 +268,7 @@ VOID InitGame(LPARAM lParam)
     mciOpen.lpstrDeviceType = _T("mpegvideo");
     mciOpen.lpstrElementName = _T("..//res//Crash.mp3");
 
-    mciSendCommand(0, MCI_OPEN, MCI_OPEN_TYPE | MCI_OPEN_ELEMENT, (DWORD)&mciOpen);
+    mciSendCommand(0, MCI_OPEN, MCI_OPEN_TYPE | MCI_OPEN_ELEMENT, (DWORD_PTR)&mciOpen);
 
     g_uiMusicDeviceID = mciOpen.wDeviceID;
 
@@ -657,7 +657,7 @@ VOID Hit(POINT ptMouse)
 
             /* Play crash music */
             mciPlay.dwFrom = 0;
-            mciSendCommand(g_uiMusicDeviceID, MCI_PLAY, MCI_FROM, (DWORD)&mciPlay);
+            mciSendCommand(g_uiMusicDeviceID, MCI_PLAY, MCI_FROM, (DWORD_PTR)&mciPlay);
 
             break;
         }
