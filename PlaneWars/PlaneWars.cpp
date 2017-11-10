@@ -653,7 +653,10 @@ VOID Hit(POINT ptMouse)
         {
             g_tPlaneArray[i].hitCounter++;
 
-            assert(g_tPlaneArray[i].hitCounter < g_tPlaneArray[i].type + 2);
+            if (g_tPlaneArray[i].hitCounter > g_tPlaneArray[i].type + 1)
+            {
+                g_tPlaneArray[i].hitCounter = g_tPlaneArray[i].type + 1;
+            }
 
             /* Play crash music */
             mciPlay.dwFrom = 0;
