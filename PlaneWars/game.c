@@ -3,7 +3,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
-   
+
 #define MAX_PLANE_NUM       (20)
 #define MAX_PLANE_TYPE_NUM  (3)
 #define MAX_EVENT_NUM       (1)
@@ -14,6 +14,8 @@ static PLANE_INFO_T g_tPlanes[MAX_PLANE_NUM];
 static EVENT_INFO_T g_tEvents[MAX_EVENT_NUM];
 
 //////////////////////////////////////////////////////////////////////
+
+// TODO: to make it callback to allow user defined game policy
 static void init_plane(PLANE_INFO_T * plane)
 {
     int i = 0;
@@ -46,20 +48,8 @@ static void init_plane(PLANE_INFO_T * plane)
     } while (1);
 
     plane->pos_x     = rand() % (g_tGame.board_size_x - g_tPlaneTypes[plane->type].size_x);
-    plane->pos_y     = 0 - g_tPlaneTypes[plane->type].size_y - (rand() % g_tGame.board_size_y);
+    plane->pos_y     = 0 - g_tPlaneTypes[plane->type].size_y - (rand() % (g_tGame.board_size_y / 3));
     plane->hit_count = 0;
-}
-
-static PLANE_TYPE_INFO_T * get_plane_type_info(PLANE_TYPE type)
-{
-    int i = 0;
-
-    for (i=0; i<g_tGame.plane_type_num; i++) {
-        if (g_tPlaneTypes[i].type == type)
-            return &g_tPlaneTypes[i];
-    }
-
-    return NULL;
 }
 
 static int get_hit_plane_index(int hit_pos_x, int hit_pos_y)
@@ -71,11 +61,13 @@ static int get_hit_plane_index(int hit_pos_x, int hit_pos_y)
         return -1;
 
     for (i=0; i<g_tGame.plane_num; i++) {
-        plane_type = get_plane_type_info(g_tPlanes[i].type);
+        plane_type = game_get_plane_type_info(g_tPlanes[i].type);
         if (!plane_type)
             return -1;
-        if (hit_pos_x > g_tPlanes[i].pos_x && hit_pos_x < g_tPlanes[i].pos_x + plane_type->size_x
-            && hit_pos_y > g_tPlanes[i].pos_y && hit_pos_y > g_tPlanes[i].pos_y + plane_type->size_y)
+        if (hit_pos_x > g_tPlanes[i].pos_x 
+            && hit_pos_x < g_tPlanes[i].pos_x + plane_type->size_x
+            && hit_pos_y > g_tPlanes[i].pos_y 
+            && hit_pos_y < g_tPlanes[i].pos_y + plane_type->size_y)
             return i;
     }
     
@@ -85,9 +77,20 @@ static int get_hit_plane_index(int hit_pos_x, int hit_pos_y)
 static void process_events(void)
 {
     int i = 0;
+    PLANE_TYPE_INFO_T * plane_type = NULL;
     int hit_pos_x;
     int hit_pos_y;
     int hit_index;
+
+    for (i=0; i<g_tGame.plane_num; i++) {
+        plane_type = game_get_plane_type_info(g_tPlanes[i].type);
+        if (!plane_type)
+            continue;
+        if (g_tPlanes[i].hit_count == plane_type->max_hit) {
+            init_plane(&g_tPlanes[i]);
+            continue;
+        }
+    }
 
     if (g_tGame.event_count <= 0)
         return;
@@ -117,13 +120,9 @@ static void move_planes_regularly(void)
     PLANE_TYPE_INFO_T * plane_type = NULL;
 
     for (i=0; i<g_tGame.plane_num; i++) {
-        plane_type = get_plane_type_info(g_tPlanes[i].type);
+        plane_type = game_get_plane_type_info(g_tPlanes[i].type);
         if (!plane_type)
             return;
-        if (g_tPlanes[i].hit_count == plane_type->max_hit) {
-            init_plane(&g_tPlanes[i]);
-            continue;
-        }
         g_tPlanes[i].pos_y += plane_type->speed;
     }
 }
@@ -134,7 +133,7 @@ static void check_game_over(void)
     PLANE_TYPE_INFO_T * plane_type = NULL;
 
     for (i=0; i<g_tGame.plane_num; i++) {
-        plane_type = get_plane_type_info(g_tPlanes[i].type);
+        plane_type = game_get_plane_type_info(g_tPlanes[i].type);
         if (!plane_type)
             return;
         if (g_tPlanes[i].pos_y + plane_type->size_y > g_tGame.board_size_y) {
@@ -235,6 +234,7 @@ int  game_start(void)
 
     if (g_tGame.board_size_x <= 0 
         || g_tGame.board_size_y <= 0 
+        || g_tGame.plane_type_num <= 0
         || g_tGame.plane_num <= 0)
         return -1;
 
@@ -277,7 +277,7 @@ int  game_set_event(EVENT_INFO_T * event)
     return 0;
 }
 
-GAME_INFO_T  * game_get_game_info(void)
+GAME_INFO_T * game_get_game_info(void)
 {
     return &g_tGame;
 }
@@ -288,4 +288,16 @@ PLANE_INFO_T * game_get_plane_info(int index)
         return NULL;
 
     return &g_tPlanes[index];
+}
+
+PLANE_TYPE_INFO_T * game_get_plane_type_info(PLANE_TYPE type)
+{
+    int i = 0;
+
+    for (i=0; i<g_tGame.plane_type_num; i++) {
+        if (g_tPlaneTypes[i].type == type)
+            return &g_tPlaneTypes[i];
+    }
+
+    return NULL;
 }

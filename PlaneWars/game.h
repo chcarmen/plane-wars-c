@@ -63,8 +63,9 @@ int  game_start(void);
 int  game_stop(void);
 int  game_set_event(EVENT_INFO_T * event);
 
-GAME_INFO_T  * game_get_game_info(void);
-PLANE_INFO_T * game_get_plane_info(int index);
+GAME_INFO_T       * game_get_game_info(void);
+PLANE_INFO_T      * game_get_plane_info(int index);
+PLANE_TYPE_INFO_T * game_get_plane_type_info(PLANE_TYPE type);
 
 #ifdef __cplusplus
 }
