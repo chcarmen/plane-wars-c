@@ -374,8 +374,8 @@ VOID UpdatePlaneInfo(BOOL bReset, UINT uiIndex, UINT uiSpeed)
 *****************************************************/
 VOID DrawWindow(HDC hdc)
 {
-    HDC        hdcMem, hdcBmp;
-    HBITMAP    cptBmp;
+    HDC        hdcMem, hdcTmp;
+    HBITMAP    hBmpMem;
     BITMAP     bmp;
     UINT       i;
     HFONT      hf;
@@ -385,48 +385,48 @@ VOID DrawWindow(HDC hdc)
 
     /* Use Double Buffering method to paint */
 
-    /* cptBmp is a tmp bitmap, used to store all kinds of things */
-    cptBmp    = CreateCompatibleBitmap(hdc, WNDWIDTH, WNDHEIGHT);
+    /* hBmpMem is a tmp bitmap, used to store all kinds of things */
+    hBmpMem    = CreateCompatibleBitmap(hdc, WNDWIDTH, WNDHEIGHT);
 
-    /* hdcBmp is tmp dc in memory corresponding to cptBmp */
-    hdcBmp = CreateCompatibleDC(hdc);
-
-    SelectObject(hdcBmp, cptBmp);
-
-
-    /* hdcMem is another tmp dc, used to store widgets, like background, plane, button,etc. */
+    /* hdcMem is tmp dc in memory corresponding to hBmpMem */
     hdcMem = CreateCompatibleDC(hdc);
+
+    SelectObject(hdcMem, hBmpMem);
+
+
+    /* hdcTmp is another tmp dc, used to store widgets, like background, plane, button,etc. */
+    hdcTmp = CreateCompatibleDC(hdc);
 
 
     /* Draw background */
-    SelectObject(hdcMem, g_hBmp[0]);
+    SelectObject(hdcTmp, g_hBmp[0]);
 
-    BitBlt(hdcBmp, 0, 0, WNDWIDTH, WNDHEIGHT,
-        hdcMem, 0, 0, SRCCOPY);
+    BitBlt(hdcMem, 0, 0, WNDWIDTH, WNDHEIGHT,
+        hdcTmp, 0, 0, SRCCOPY);
 
     switch (g_emGameStatus)
     {
     case WELCOME:
         {
             /* Draw logo */
-            SelectObject(hdcMem, g_hBmp[4]);
+            SelectObject(hdcTmp, g_hBmp[4]);
             GetObject(g_hBmp[4], sizeof(BITMAP), &bmp);
 
             TransparentBlt(
-                hdcBmp,
-                30, 150, bmp.bmWidth, bmp.bmHeight,
                 hdcMem,
+                30, 150, bmp.bmWidth, bmp.bmHeight,
+                hdcTmp,
                 0, 0, bmp.bmWidth, bmp.bmHeight,
                 RGB(255, 255, 255));
 
             /* Draw start button */
-            SelectObject(hdcMem, g_hBmp[5]);
+            SelectObject(hdcTmp, g_hBmp[5]);
             GetObject(g_hBmp[5], sizeof(BITMAP), &bmp);
 
             TransparentBlt(
-                hdcBmp,
-                120, 350, bmp.bmWidth, bmp.bmHeight,
                 hdcMem,
+                120, 350, bmp.bmWidth, bmp.bmHeight,
+                hdcTmp,
                 0, 0, bmp.bmWidth, bmp.bmHeight,
                 RGB(255, 255, 255));
         }
@@ -436,12 +436,12 @@ VOID DrawWindow(HDC hdc)
             /* Draw planes */
             for (i = 0; i<PLANECOUNT; i++)
             {
-                SelectObject(hdcMem, g_tPlaneArray[i].hBmp);
+                SelectObject(hdcTmp, g_tPlaneArray[i].hBmp);
 
                 TransparentBlt(
-                    hdcBmp, g_tPlaneArray[i].pos.x, g_tPlaneArray[i].pos.y,
+                    hdcMem, g_tPlaneArray[i].pos.x, g_tPlaneArray[i].pos.y,
                     g_tPlaneArray[i].size.cx, g_tPlaneArray[i].size.cy,
-                    hdcMem, 0, g_tPlaneArray[i].hitCounter * g_tPlaneArray[i].size.cy,
+                    hdcTmp, 0, g_tPlaneArray[i].hitCounter * g_tPlaneArray[i].size.cy,
                     g_tPlaneArray[i].size.cx, g_tPlaneArray[i].size.cy,
                     RGB(255, 255, 255));
 
@@ -455,35 +455,35 @@ VOID DrawWindow(HDC hdc)
     case GAMEOVER:
         {
             /* Draw game over pic */
-            SelectObject(hdcMem, g_hBmp[6]);
+            SelectObject(hdcTmp, g_hBmp[6]);
             GetObject(g_hBmp[6], sizeof(BITMAP), &bmp);
 
             TransparentBlt(
-                hdcBmp,
-                (WNDWIDTH - bmp.bmWidth)/2, (WNDHEIGHT - bmp.bmHeight)/2, bmp.bmWidth, bmp.bmHeight,
                 hdcMem,
+                (WNDWIDTH - bmp.bmWidth)/2, (WNDHEIGHT - bmp.bmHeight)/2, bmp.bmWidth, bmp.bmHeight,
+                hdcTmp,
                 0, 0, bmp.bmWidth, bmp.bmHeight,
                 RGB(255, 255, 255));
 
             /* Draw restart button */
-            SelectObject(hdcMem, g_hBmp[7]);
+            SelectObject(hdcTmp, g_hBmp[7]);
             GetObject(g_hBmp[7], sizeof(BITMAP), &bmp);
 
             TransparentBlt(
-                hdcBmp,
-                100, 270, bmp.bmWidth, bmp.bmHeight,
                 hdcMem,
+                100, 270, bmp.bmWidth, bmp.bmHeight,
+                hdcTmp,
                 0, 0, bmp.bmWidth, bmp.bmHeight,
                 RGB(255, 255, 255));
 
             /* Draw exit button */
-            SelectObject(hdcMem, g_hBmp[8]);
+            SelectObject(hdcTmp, g_hBmp[8]);
             GetObject(g_hBmp[8], sizeof(BITMAP), &bmp);
 
             TransparentBlt(
-                hdcBmp,
-                100, 310, bmp.bmWidth, bmp.bmHeight,
                 hdcMem,
+                100, 310, bmp.bmWidth, bmp.bmHeight,
+                hdcTmp,
                 0, 0, bmp.bmWidth, bmp.bmHeight,
                 RGB(255, 255, 255));
 
@@ -497,7 +497,7 @@ VOID DrawWindow(HDC hdc)
             lf.lfCharSet = CHINESEBIG5_CHARSET;
 
             hf = CreateFontIndirect(&lf);
-            SelectObject(hdcBmp, hf);
+            SelectObject(hdcMem, hf);
 
             rt.left   = 150;
             rt.top    = 210;
@@ -506,9 +506,9 @@ VOID DrawWindow(HDC hdc)
 
             _itot_s(g_uiScore, strScore, 10);
 
-            SetBkMode(hdcBmp, TRANSPARENT);
+            SetBkMode(hdcMem, TRANSPARENT);
 
-            DrawText(hdcBmp, strScore, -1, &rt, DT_CENTER);
+            DrawText(hdcMem, strScore, -1, &rt, DT_CENTER);
         }
         break;
     default:
@@ -517,12 +517,12 @@ VOID DrawWindow(HDC hdc)
 
 
     /* Blit everything onto screen  */
-    BitBlt(hdc, 0, 0, WNDWIDTH, WNDHEIGHT, hdcBmp, 0, 0, SRCCOPY);
+    BitBlt(hdc, 0, 0, WNDWIDTH, WNDHEIGHT, hdcMem, 0, 0, SRCCOPY);
 
 
-    DeleteObject(cptBmp);
-    DeleteDC(hdcBmp);
+    DeleteObject(hBmpMem);
     DeleteDC(hdcMem);
+    DeleteDC(hdcTmp);
 }
 
 
