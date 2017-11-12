@@ -110,7 +110,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    HWND hWnd = CreateWindowW(g_szWindowClass,
                              g_szTitle, 
-                             WS_OVERLAPPEDWINDOW & (~WS_MAXIMIZEBOX),
+                             WS_OVERLAPPEDWINDOW & (~WS_MAXIMIZEBOX) & (~WS_SIZEBOX),
                              (cxScreen - WNDWIDTH) / 2, 
                              (cyScreen - WNDHEIGHT + 100) / 2,
                              WNDWIDTH, 
