@@ -52,8 +52,11 @@ static void init_plane(PLANE_INFO_T * plane)
     plane_type = game_get_plane_type_info(plane->type);
     assert(plane_type != NULL);
 
+    assert(g_tGame.board_size_x - plane_type->size_x != 0);
+    assert(g_tGame.board_size_y / 3 != 0);
     plane->pos_x = rand() % (g_tGame.board_size_x - plane_type->size_x);
     plane->pos_y = 0 - plane_type->size_y - (rand() % (g_tGame.board_size_y / 3));
+
     plane->hit_count = 0;
 }
 
