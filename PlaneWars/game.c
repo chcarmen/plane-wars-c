@@ -3,6 +3,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #define MAX_PLANE_NUM       (20)
 #define MAX_PLANE_TYPE_NUM  (3)
@@ -21,6 +22,7 @@ static void init_plane(PLANE_INFO_T * plane)
     int i = 0;
     int r = 0;
     int big_plane_cnt = 0;
+    PLANE_TYPE_INFO_T * plane_type = NULL;
 
     do {
         r = rand() % 3;
@@ -47,8 +49,11 @@ static void init_plane(PLANE_INFO_T * plane)
             break;
     } while (1);
 
-    plane->pos_x     = rand() % (g_tGame.board_size_x - g_tPlaneTypes[plane->type].size_x);
-    plane->pos_y     = 0 - g_tPlaneTypes[plane->type].size_y - (rand() % (g_tGame.board_size_y / 3));
+    plane_type = game_get_plane_type_info(plane->type);
+    assert(plane_type != NULL);
+
+    plane->pos_x = rand() % (g_tGame.board_size_x - plane_type->size_x);
+    plane->pos_y = 0 - plane_type->size_y - (rand() % (g_tGame.board_size_y / 3));
     plane->hit_count = 0;
 }
 
@@ -62,8 +67,8 @@ static int get_hit_plane_index(int hit_pos_x, int hit_pos_y)
 
     for (i=0; i<g_tGame.plane_num; i++) {
         plane_type = game_get_plane_type_info(g_tPlanes[i].type);
-        if (!plane_type)
-            return -1;
+        assert(plane_type != NULL);
+
         if (hit_pos_x > g_tPlanes[i].pos_x 
             && hit_pos_x < g_tPlanes[i].pos_x + plane_type->size_x
             && hit_pos_y > g_tPlanes[i].pos_y 
@@ -84,8 +89,8 @@ static void process_events(void)
 
     for (i=0; i<g_tGame.plane_num; i++) {
         plane_type = game_get_plane_type_info(g_tPlanes[i].type);
-        if (!plane_type)
-            continue;
+        assert(plane_type != NULL);
+
         if (g_tPlanes[i].hit_count == plane_type->max_hit) {
             init_plane(&g_tPlanes[i]);
             continue;
@@ -121,8 +126,8 @@ static void move_planes_regularly(void)
 
     for (i=0; i<g_tGame.plane_num; i++) {
         plane_type = game_get_plane_type_info(g_tPlanes[i].type);
-        if (!plane_type)
-            return;
+        assert(plane_type != NULL);
+
         g_tPlanes[i].pos_y += plane_type->speed;
     }
 }
@@ -134,8 +139,8 @@ static void check_game_over(void)
 
     for (i=0; i<g_tGame.plane_num; i++) {
         plane_type = game_get_plane_type_info(g_tPlanes[i].type);
-        if (!plane_type)
-            return;
+        assert(plane_type != NULL);
+
         if (g_tPlanes[i].pos_y + plane_type->size_y > g_tGame.board_size_y) {
             g_tGame.status = GAMEOVER;
         }
@@ -241,7 +246,9 @@ int  game_start(void)
     for (i=0; i<g_tGame.plane_type_num; i++) {
         if (g_tPlaneTypes[i].size_x <= 0 
             || g_tPlaneTypes[i].size_y <= 0 
-            || g_tPlaneTypes[i].speed <= 0)
+            || g_tPlaneTypes[i].speed <= 0
+            || g_tPlaneTypes[i].size_x >= g_tGame.board_size_x
+            || g_tPlaneTypes[i].size_y >= g_tGame.board_size_y)
             return -1;
     }
 

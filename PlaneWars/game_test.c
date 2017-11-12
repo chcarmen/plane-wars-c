@@ -1,7 +1,19 @@
 #include "game.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef _WIN32
 #include <windows.h>
+static  UTIL_Sleep(int time_ms)
+{
+    Sleep(time_ms);
+}
+#else
+static  UTIL_Sleep(int time_ms)
+{
+    usleep(time_ms * 1000);
+}
+#endif
 
 static void print_game_info(void)
 {
@@ -191,7 +203,7 @@ int main(int argc, char * argv[])
 
         simu_hit();
         
-        Sleep(500);
+        UTIL_Sleep(500);
         game = game_get_game_info();
     } while (game->status == RUN);
 
