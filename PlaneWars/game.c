@@ -95,6 +95,7 @@ static void process_events(void)
         assert(plane_type != NULL);
 
         if (g_tPlanes[i].hit_count == plane_type->max_hit) {
+            g_tGame.score++;
             init_plane(&g_tPlanes[i]);
             continue;
         }
@@ -260,6 +261,7 @@ int  game_start(void)
         init_plane(&g_tPlanes[i]);
     }
     
+    g_tGame.score  = 0;
     g_tGame.status = RUN;
     return 0;
 }

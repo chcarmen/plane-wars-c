@@ -18,6 +18,7 @@ typedef struct {
     int plane_type_num;
     int plane_num;
     int event_count;
+    int score;
 } GAME_INFO_T;
 
 typedef enum {

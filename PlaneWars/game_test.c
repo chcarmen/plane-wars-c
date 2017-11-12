@@ -32,6 +32,7 @@ static void print_game_info(void)
     printf("plane_type_num: %d\n", game_info->plane_type_num);
     printf("plane_num: %d\n", game_info->plane_num);
     printf("event_count: %d\n", game_info->event_count);
+    printf("score: %d\n", game_info->score);
     printf("********** game_info **********\n\n");
 }
 
