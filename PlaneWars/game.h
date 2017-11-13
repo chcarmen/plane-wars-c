@@ -31,13 +31,13 @@ typedef struct {
     PLANE_TYPE type;
     int size_x;
     int size_y;
-    int max_hit;
+    int max_hp;
     int speed;
 } PLANE_TYPE_INFO_T;
 
 typedef struct {
     PLANE_TYPE type;
-    int hit_count;
+    int hp;
     int pos_x;
     int pos_y;
 } PLANE_INFO_T;

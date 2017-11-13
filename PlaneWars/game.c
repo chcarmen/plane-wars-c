@@ -57,7 +57,7 @@ static void init_plane(PLANE_INFO_T * plane)
     plane->pos_x = rand() % (g_tGame.board_size_x - plane_type->size_x);
     plane->pos_y = 0 - plane_type->size_y - (rand() % (g_tGame.board_size_y / 3));
 
-    plane->hit_count = 0;
+    plane->hp = plane_type->max_hp;
 }
 
 static int get_hit_plane_index(int hit_pos_x, int hit_pos_y)
@@ -85,16 +85,12 @@ static int get_hit_plane_index(int hit_pos_x, int hit_pos_y)
 static void process_events(void)
 {
     int i = 0;
-    PLANE_TYPE_INFO_T * plane_type = NULL;
     int hit_pos_x;
     int hit_pos_y;
     int hit_index;
 
     for (i=0; i<g_tGame.plane_num; i++) {
-        plane_type = game_get_plane_type_info(g_tPlanes[i].type);
-        assert(plane_type != NULL);
-
-        if (g_tPlanes[i].hit_count == plane_type->max_hit) {
+        if (g_tPlanes[i].hp == 0) {
             g_tGame.score++;
             init_plane(&g_tPlanes[i]);
             continue;
@@ -113,7 +109,7 @@ static void process_events(void)
             hit_index = get_hit_plane_index(hit_pos_x, hit_pos_y);
             if (hit_index < 0)
                 break;
-            g_tPlanes[hit_index].hit_count++;
+            g_tPlanes[hit_index].hp--;
             break;
         default:
             break;

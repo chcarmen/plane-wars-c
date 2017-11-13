@@ -42,7 +42,7 @@ static void print_plane_type_info(void)
     int i = 0;
  
     printf("\n********** plane_type_info **********\n");
-    printf("type\tsize_x\tsize_y\tmax_hit\tspeed\n");
+    printf("type\tsize_x\tsize_y\tmax_hp\tspeed\n");
     for (i=0; i<10; i++) {
         plane_type = game_get_plane_type_info(i);
         if (plane_type) {
@@ -50,7 +50,7 @@ static void print_plane_type_info(void)
                 plane_type->type,
                 plane_type->size_x,
                 plane_type->size_y,
-                plane_type->max_hit,
+                plane_type->max_hp,
                 plane_type->speed);
         }
     }
@@ -64,7 +64,7 @@ static void print_plane_info(void)
     int i = 0;
 
     printf("\n********** plane_info **********\n");
-    printf("type\tpos_x1\tpos_x2\tpos_y1\tpos_y2\thit\tmax_hit\tspeed\n");
+    printf("index\ttype\tpos_x1\tpos_x2\tpos_y1\tpos_y2\tmax_hp\thp\tspeed\n");
     for (i=0; i<20; i++) {
         plane = game_get_plane_info(i);
         if (!plane)
@@ -74,14 +74,15 @@ static void print_plane_info(void)
             continue;
 
         if (plane) {
-            printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+            printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+                i,
                 plane->type,
                 plane->pos_x,
                 plane->pos_x + plane_type->size_x,
                 plane->pos_y,
                 plane->pos_y + plane_type->size_y,
-                plane->hit_count,
-                plane_type->max_hit,
+                plane_type->max_hp,
+                plane->hp,
                 plane_type->speed);
         }
     }
@@ -150,7 +151,7 @@ int main(int argc, char * argv[])
     plane_type.type = SMALL;
     plane_type.size_x = 40;
     plane_type.size_y = 35;
-    plane_type.max_hit = 1;
+    plane_type.max_hp = 1;
     plane_type.speed = 2;
     ret = game_set_plane_type_info(&plane_type);
     if (ret < 0) {
@@ -161,7 +162,7 @@ int main(int argc, char * argv[])
     plane_type.type = MIDDLE;
     plane_type.size_x = 80;
     plane_type.size_y = 70;
-    plane_type.max_hit = 2;
+    plane_type.max_hp = 2;
     plane_type.speed = 1;
     ret = game_set_plane_type_info(&plane_type);
     if (ret < 0) {
@@ -172,7 +173,7 @@ int main(int argc, char * argv[])
     plane_type.type = BIG;
     plane_type.size_x = 120;
     plane_type.size_y = 105;
-    plane_type.max_hit = 3;
+    plane_type.max_hp = 3;
     plane_type.speed = 1;
     ret = game_set_plane_type_info(&plane_type);
     if (ret < 0) {
