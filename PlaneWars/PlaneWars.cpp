@@ -114,7 +114,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
                              (cxScreen - WNDWIDTH) / 2, 
                              (cyScreen - WNDHEIGHT + 100) / 2,
                              WNDWIDTH, 
-                             WNDHEIGHT + 38,
+                             WNDHEIGHT + 35,
                              nullptr, 
                              nullptr,
                              hInstance, 

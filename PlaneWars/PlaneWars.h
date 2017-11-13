@@ -45,7 +45,7 @@ typedef struct
     int              moveSpeed;    /* Each plane may have different move speed */
     int              hitCounter;   /* Plane crashes only when hitCounter achieves maximum. 
                                    Possible value: small:0-1,  middle:0-2,  big:0-3, After crash: -1 */
-}PLANE, *PPLANE;
+}PLANE;
 
 /* The game window has 3 diff statuses:
 *    WELCOME:  show logo, start button
