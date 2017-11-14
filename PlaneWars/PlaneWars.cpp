@@ -4,18 +4,37 @@
 #include "stdafx.h"
 #include "PlaneWars.h"
 
+#pragma comment(lib,"msimg32.lib")
+
 #define MAX_LOADSTRING 100
+#define TICK_TIMER     1
 
 // 全局变量: 
 HINSTANCE hInst;                                // 当前实例
 WCHAR szTitle[MAX_LOADSTRING];                  // 标题栏文本
 WCHAR szWindowClass[MAX_LOADSTRING];            // 主窗口类名
+HBITMAP hBmpBig;
+HBITMAP hBmpBk;
+HBITMAP hBmpExit;
+HBITMAP hBmpGameover;
+HBITMAP hBmpLogo;
+HBITMAP hBmpMiddle;
+HBITMAP hBmpPlay;
+HBITMAP hBmpRestart;
+HBITMAP hBmpSmall;
+HBITMAP hBmpStart;
 
 // 此代码模块中包含的函数的前向声明: 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+VOID                InitGame();
+VOID                DrawWindow(HDC hdc);
+VOID                TimerProc(HWND hWnd);
+VOID                LButtonDownProc(HWND hWnd, LPARAM lParam);
+BOOL                CheckGameStartButtonDown(POINT ptMouse);
+BOOL                CheckGameReStartButtonDown(POINT ptMouse);
+BOOL                CheckGameExitButtonDown(POINT ptMouse);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -76,7 +95,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_PLANEWARS));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_PLANEWARS);
+    wcex.lpszMenuName   = nullptr;
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -97,8 +116,31 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // 将实例句柄存储在全局变量中
 
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+   // init the game
+   InitGame();
+
+   // calculate the window size from client size
+   BITMAP bmp;
+   GetObject(hBmpBk, sizeof(BITMAP), &bmp);
+   RECT rect ={ 0, 0, bmp.bmWidth, bmp.bmHeight };
+   AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW  & (~WS_MAXIMIZEBOX) & (~WS_SIZEBOX), FALSE);
+   int nWndWidth  = rect.right - rect.left;
+   int nWndHeight = rect.bottom - rect.top;
+
+   int cxScreen = GetSystemMetrics(SM_CXSCREEN);
+   int cyScreen = GetSystemMetrics(SM_CYSCREEN);
+
+   HWND hWnd = CreateWindowW(szWindowClass, 
+                             szTitle,
+                             WS_OVERLAPPEDWINDOW  & (~WS_MAXIMIZEBOX) & (~WS_SIZEBOX),
+                             (cxScreen - nWndWidth) / 2,
+                             (cyScreen - nWndHeight + 100) / 2,
+                             nWndWidth,
+                             nWndHeight,
+                             nullptr,
+                             nullptr,
+                             hInstance,
+                             nullptr);
 
    if (!hWnd)
    {
@@ -125,30 +167,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
-    case WM_COMMAND:
-        {
-            int wmId = LOWORD(wParam);
-            // 分析菜单选择: 
-            switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
-            }
-        }
-        break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: 在此处添加使用 hdc 的任何绘图代码...
+            DrawWindow(hdc);
             EndPaint(hWnd, &ps);
         }
+        break; 
+    case WM_TIMER:
+        TimerProc(hWnd);
+        break;
+    case WM_LBUTTONDOWN:
+        LButtonDownProc(hWnd, lParam);
         break;
     case WM_DESTROY:
         PostQuitMessage(0);
@@ -159,22 +191,355 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-// “关于”框的消息处理程序。
-INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+VOID InitGame()
 {
-    UNREFERENCED_PARAMETER(lParam);
-    switch (message)
-    {
-    case WM_INITDIALOG:
-        return (INT_PTR)TRUE;
+    int ret;
+    PLANE_TYPE_INFO_T plane_type;
+    BITMAP bmp;
 
-    case WM_COMMAND:
-        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+    hBmpBig         = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BIG));
+    hBmpBk          = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BK));
+    hBmpExit        = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_EXIT));
+    hBmpGameover    = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_GAMEOVER));
+    hBmpLogo        = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_LOGO));
+    hBmpMiddle      = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_MIDDLE));
+    hBmpPlay        = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_PLAY));
+    hBmpRestart     = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_RESTART));
+    hBmpSmall       = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_SMALL));
+    hBmpStart       = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_START));
+
+    // init the game module
+    game_init();
+
+    // set board size of the game
+    GetObject(hBmpBk, sizeof(BITMAP), &bmp);
+    ret = game_set_board_size(bmp.bmWidth, bmp.bmHeight);
+    assert(ret == 0);
+
+    // set plane number
+    ret = game_set_plane_num(10);
+    assert(ret == 0);
+
+    // set small plane type
+    GetObject(hBmpSmall, sizeof(BITMAP), &bmp);
+    plane_type.type = SMALL;
+    plane_type.size_x = bmp.bmWidth;
+    plane_type.size_y = bmp.bmHeight / 2; // 2 pictures in one bmp file
+    plane_type.max_hp = 1;
+    plane_type.speed = 2;
+    ret = game_set_plane_type_info(&plane_type);
+    assert(ret == 0);
+
+    // set middle plane type
+    GetObject(hBmpMiddle, sizeof(BITMAP), &bmp);
+    plane_type.type = MIDDLE;
+    plane_type.size_x = bmp.bmWidth;
+    plane_type.size_y = bmp.bmHeight / 3; // 3 pictures in one bmp file
+    plane_type.max_hp = 2;
+    plane_type.speed = 1;
+    ret = game_set_plane_type_info(&plane_type);
+    assert(ret == 0);
+
+    // set big plane type
+    GetObject(hBmpBig, sizeof(BITMAP), &bmp);
+    plane_type.type = BIG;
+    plane_type.size_x = bmp.bmWidth;
+    plane_type.size_y = bmp.bmHeight / 4; // 4 pictures in one bmp file
+    plane_type.max_hp = 3;
+    plane_type.speed = 1;
+    ret = game_set_plane_type_info(&plane_type);
+    assert(ret == 0);
+}
+
+VOID DrawWindow(HDC hdc)
+{
+    HDC        hdcMem, hdcBmp;
+    HBITMAP    cptBmp;
+    BITMAP     bmp;
+    int        i;
+    HFONT      hf;
+    LOGFONT    lf;
+    RECT       rt;
+    TCHAR      strScore[10];
+    int        nBkWidth;
+    int        nBkHeight;
+
+    /* Use Double Buffering method to paint */
+    
+    /* background width and height */
+    GetObject(hBmpBk, sizeof(BITMAP), &bmp);
+    nBkWidth  = bmp.bmWidth;
+    nBkHeight = bmp.bmHeight;
+
+    /* cptBmp is a tmp bitmap, used to store all kinds of things */
+    cptBmp    = CreateCompatibleBitmap(hdc, bmp.bmWidth, bmp.bmHeight);
+
+    /* hdcBmp is tmp dc in memory corresponding to cptBmp */
+    hdcBmp = CreateCompatibleDC(hdc);
+    SelectObject(hdcBmp, cptBmp);
+
+    /* hdcMem is another tmp dc, used to store widgets, like background, plane, button,etc. */
+    hdcMem = CreateCompatibleDC(hdc);
+    SelectObject(hdcMem, hBmpBk);
+
+    BitBlt(hdcBmp, 0, 0, nBkWidth, nBkHeight,
+        hdcMem, 0, 0, SRCCOPY);
+
+    GAME_INFO_T * pGame = game_get_game_info();
+    assert(pGame != NULL);
+
+    switch (pGame->status)
+    {
+    case WELCOME:
+    {
+        /* Draw logo */
+        SelectObject(hdcMem, hBmpLogo);
+        GetObject(hBmpLogo, sizeof(BITMAP), &bmp);
+
+        TransparentBlt(
+            hdcBmp,
+            30, 150, bmp.bmWidth, bmp.bmHeight,
+            hdcMem,
+            0, 0, bmp.bmWidth, bmp.bmHeight,
+            RGB(255, 255, 255));
+
+        /* Draw start button */
+        SelectObject(hdcMem, hBmpStart);
+        GetObject(hBmpStart, sizeof(BITMAP), &bmp);
+
+        TransparentBlt(
+            hdcBmp,
+            120, 350, bmp.bmWidth, bmp.bmHeight,
+            hdcMem,
+            0, 0, bmp.bmWidth, bmp.bmHeight,
+            RGB(255, 255, 255));
+        break;
+    }
+    case RUN:
+    {
+        PLANE_INFO_T      * pPlane     = NULL;
+        PLANE_TYPE_INFO_T * pPlaneType = NULL;
+        int bmp_pos_y;
+
+        /* Draw planes */
+        for (i = 0; i<pGame->plane_num; i++)
         {
-            EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
+            pPlane = game_get_plane_info(i);
+            assert(pPlane != NULL);
+            pPlaneType = game_get_plane_type_info(pPlane->type);
+            assert(pPlaneType != NULL);
+
+            switch (pPlane->type) 
+            {
+            case SMALL:
+                SelectObject(hdcMem, hBmpSmall);
+                break;
+            case MIDDLE:
+                SelectObject(hdcMem, hBmpMiddle);
+                break;
+            case BIG:
+                SelectObject(hdcMem, hBmpBig);
+                break;
+            default:
+                assert(0);
+                break;
+            }
+
+            bmp_pos_y = pPlaneType->size_y * (pPlaneType->max_hp - pPlane->hp);
+
+            TransparentBlt(
+                hdcBmp,
+                pPlane->pos_x, pPlane->pos_y, pPlaneType->size_x, pPlaneType->size_y,
+                hdcMem,
+                0, bmp_pos_y, pPlaneType->size_x, pPlaneType->size_y,
+                RGB(255, 255, 255));
         }
         break;
     }
-    return (INT_PTR)FALSE;
+    case GAMEOVER:
+    {
+        /* Draw game over pic */
+        SelectObject(hdcMem, hBmpGameover);
+        GetObject(hBmpGameover, sizeof(BITMAP), &bmp);
+
+        TransparentBlt(
+            hdcBmp,
+            (nBkWidth - bmp.bmWidth)/2, (nBkHeight - bmp.bmHeight)/2, bmp.bmWidth, bmp.bmHeight,
+            hdcMem,
+            0, 0, bmp.bmWidth, bmp.bmHeight,
+            RGB(255, 255, 255));
+
+        /* Draw restart button */
+        SelectObject(hdcMem, hBmpRestart);
+        GetObject(hBmpRestart, sizeof(BITMAP), &bmp);
+
+        TransparentBlt(
+            hdcBmp,
+            100, 270, bmp.bmWidth, bmp.bmHeight,
+            hdcMem,
+            0, 0, bmp.bmWidth, bmp.bmHeight,
+            RGB(255, 255, 255));
+
+        /* Draw exit button */
+        SelectObject(hdcMem, hBmpExit);
+        GetObject(hBmpExit, sizeof(BITMAP), &bmp);
+
+        TransparentBlt(
+            hdcBmp,
+            100, 310, bmp.bmWidth, bmp.bmHeight,
+            hdcMem,
+            0, 0, bmp.bmWidth, bmp.bmHeight,
+            RGB(255, 255, 255));
+
+        /* Draw score */
+        lf.lfHeight = 25;
+        lf.lfWidth = 25;
+        lf.lfEscapement = 0;
+        lf.lfItalic = FALSE;
+        lf.lfUnderline = FALSE;
+        lf.lfStrikeOut = FALSE;
+        lf.lfCharSet = CHINESEBIG5_CHARSET;
+
+        hf = CreateFontIndirect(&lf);
+        SelectObject(hdcBmp, hf);
+
+        rt.left   = 150;
+        rt.top    = 210;
+        rt.right  = 300;
+        rt.bottom = 260;
+
+        _itot_s(pGame->score, strScore, 10);
+
+        SetBkMode(hdcBmp, TRANSPARENT);
+
+        DrawText(hdcBmp, strScore, -1, &rt, DT_CENTER);
+        break;
+    }
+    default:
+        break;
+    }
+
+    /* Blit everything onto screen  */
+    BitBlt(hdc, 0, 0, nBkWidth, nBkHeight, hdcBmp, 0, 0, SRCCOPY);
+
+    DeleteObject(cptBmp);
+    DeleteDC(hdcBmp);
+    DeleteDC(hdcMem);
+}
+
+BOOL CheckGameStartButtonDown(POINT ptMouse)
+{
+    RECT   rc;
+    BITMAP bmp;
+
+    GetObject(hBmpStart, sizeof(BITMAP), &bmp);
+
+    rc.left   = 120;
+    rc.top    = 350;
+    rc.right  = bmp.bmWidth + rc.left;
+    rc.bottom = bmp.bmHeight + rc.top;
+
+    return PtInRect(&rc, ptMouse);
+}
+
+BOOL CheckGameReStartButtonDown(POINT ptMouse)
+{
+    RECT   rc;
+    BITMAP bmp;
+
+    GetObject(hBmpRestart, sizeof(BITMAP), &bmp);
+
+    rc.left   = 100;
+    rc.top    = 270;
+    rc.right  = bmp.bmWidth + rc.left;
+    rc.bottom = bmp.bmHeight + rc.top;
+
+    return PtInRect(&rc, ptMouse);
+}
+
+BOOL CheckGameExitButtonDown(POINT ptMouse)
+{
+    RECT   rc;
+    BITMAP bmp;
+
+    GetObject(hBmpExit, sizeof(BITMAP), &bmp);
+
+    rc.left   = 100;
+    rc.top    = 310;
+    rc.right  = bmp.bmWidth + rc.left;
+    rc.bottom = bmp.bmHeight + rc.top;
+
+    return PtInRect(&rc, ptMouse);
+}
+
+VOID TimerProc(HWND hWnd)
+{
+    game_tick_handler();
+
+    GAME_INFO_T * pGame = game_get_game_info();
+    assert(pGame != NULL);
+
+    if (pGame->status != RUN)
+    {
+        KillTimer(hWnd, TICK_TIMER);
+    }
+
+    /* Invalidate window rectangle region, generate WM_PAINT */
+    InvalidateRect(hWnd, NULL, FALSE);
+}
+
+VOID LButtonDownProc(HWND hWnd, LPARAM lParam)
+{
+    /* Mouse click coordinate */
+    POINT        ptMouse;
+
+    ptMouse.x = LOWORD(lParam);
+    ptMouse.y = HIWORD(lParam);
+
+    GAME_INFO_T * pGame = game_get_game_info();
+    assert(pGame != NULL);
+
+    switch (pGame->status) {
+    case WELCOME:
+        if (CheckGameStartButtonDown(ptMouse))
+        {
+            game_start();
+            SetTimer(hWnd, TICK_TIMER, 50, NULL);
+        }
+        break;
+    case RUN:
+        EVENT_INFO_T event;
+        event.event = HIT;
+        event.arg1 = ptMouse.x;
+        event.arg2 = ptMouse.y;
+        game_set_event(&event);
+        break;
+    case GAMEOVER:
+        /* Check if game restart button is clicked */
+        if (CheckGameReStartButtonDown(ptMouse))
+        {
+            InitGame();
+            game_start();
+            SetTimer(hWnd, TICK_TIMER, 50, NULL);
+        }
+        /* Check if game exit button is clicked */
+        if (CheckGameExitButtonDown(ptMouse))
+        {
+            DeleteObject(hBmpBig);
+            DeleteObject(hBmpBk);
+            DeleteObject(hBmpExit);
+            DeleteObject(hBmpGameover);
+            DeleteObject(hBmpLogo);
+            DeleteObject(hBmpMiddle);
+            DeleteObject(hBmpPlay);
+            DeleteObject(hBmpRestart);
+            DeleteObject(hBmpSmall);
+            DeleteObject(hBmpStart);
+            SendMessage(hWnd, WM_CLOSE, 0, 0);
+        }
+        break;
+    default:
+        assert(0);
+        break;
+    }
 }
