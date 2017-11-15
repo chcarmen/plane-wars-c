@@ -57,5 +57,43 @@
     <Image Include="PlaneWars.ico">
       <Filter>资源文件</Filter>
     </Image>
+    <Image Include="..\res\icon.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\res\bk.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\res\big.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\res\middle.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\res\play.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\res\small.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\res\logo.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\res\start.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\res\gameover.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\res\restart.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\res\exit.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="..\res\crash.wav">
+      <Filter>资源文件</Filter>
+    </Media>
   </ItemGroup>
 </Project>

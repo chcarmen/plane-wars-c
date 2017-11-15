@@ -165,8 +165,22 @@
     <ResourceCompile Include="PlaneWars.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\res\big.bmp" />
+    <Image Include="..\res\bk.bmp" />
+    <Image Include="..\res\exit.bmp" />
+    <Image Include="..\res\gameover.bmp" />
+    <Image Include="..\res\icon.ico" />
+    <Image Include="..\res\logo.bmp" />
+    <Image Include="..\res\middle.bmp" />
+    <Image Include="..\res\play.bmp" />
+    <Image Include="..\res\restart.bmp" />
+    <Image Include="..\res\small.bmp" />
+    <Image Include="..\res\start.bmp" />
     <Image Include="PlaneWars.ico" />
     <Image Include="small.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="..\res\crash.wav" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

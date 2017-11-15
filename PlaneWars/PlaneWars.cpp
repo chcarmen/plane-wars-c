@@ -24,7 +24,6 @@ HBITMAP hBmpPlay;
 HBITMAP hBmpRestart;
 HBITMAP hBmpSmall;
 HBITMAP hBmpStart;
-MCIDEVICEID mciDevId;
 
 // 此代码模块中包含的函数的前向声明: 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -211,14 +210,6 @@ VOID InitGame()
     hBmpSmall       = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_SMALL));
     hBmpStart       = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_START));
 
-    // Open mci device
-    MCI_OPEN_PARMS mciOpen;
-    mciOpen.lpstrDeviceType = _T("mpegvideo");
-    mciOpen.lpstrElementName = _T("..//res//Crash.mp3");
-    ret = mciSendCommand(0, MCI_OPEN, MCI_OPEN_TYPE | MCI_OPEN_ELEMENT, (DWORD_PTR)&mciOpen);
-    assert(ret == 0);
-    mciDevId  = mciOpen.wDeviceID;
-
     // init the game module
     game_init();
 
@@ -274,9 +265,6 @@ VOID UninitGame()
     DeleteObject(hBmpRestart);
     DeleteObject(hBmpSmall);
     DeleteObject(hBmpStart);
-
-    // Close mci device
-    mciSendCommand(mciDevId, MCI_CLOSE, NULL, NULL);
 }
 
 VOID DrawWindow(HDC hdc)
@@ -520,9 +508,10 @@ VOID TimerProc(HWND hWnd)
         assert(pPlane != NULL);
         if (pPlane->hp == 0)
         {
-            MCI_PLAY_PARMS mciPlay;
-            mciPlay.dwFrom = 0;
-            mciSendCommand(mciDevId, MCI_PLAY, MCI_FROM, (DWORD_PTR)&mciPlay);
+            PlaySound(
+                MAKEINTRESOURCE(IDR_WAVE_CRASH),
+                GetModuleHandle(NULL),
+                SND_RESOURCE | SND_ASYNC);
             break;
         }
     }
