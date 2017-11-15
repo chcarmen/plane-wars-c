@@ -269,8 +269,8 @@ VOID UninitGame()
 
 VOID DrawWindow(HDC hdc)
 {
-    HDC        hdcMem, hdcBmp;
-    HBITMAP    cptBmp;
+    HDC        hDcTmp, hDcMem;
+    HBITMAP    hBmpMem;
     BITMAP     bmp;
     int        i;
     HFONT      hf;
@@ -287,19 +287,19 @@ VOID DrawWindow(HDC hdc)
     nBkWidth  = bmp.bmWidth;
     nBkHeight = bmp.bmHeight;
 
-    /* cptBmp is a tmp bitmap, used to store all kinds of things */
-    cptBmp    = CreateCompatibleBitmap(hdc, bmp.bmWidth, bmp.bmHeight);
+    /* hBmpMem is a tmp bitmap, used to store all kinds of things */
+    hBmpMem    = CreateCompatibleBitmap(hdc, bmp.bmWidth, bmp.bmHeight);
 
-    /* hdcBmp is tmp dc in memory corresponding to cptBmp */
-    hdcBmp = CreateCompatibleDC(hdc);
-    SelectObject(hdcBmp, cptBmp);
+    /* hDcMem is tmp dc in memory corresponding to hBmpMem */
+    hDcMem = CreateCompatibleDC(hdc);
+    SelectObject(hDcMem, hBmpMem);
 
-    /* hdcMem is another tmp dc, used to store widgets, like background, plane, button,etc. */
-    hdcMem = CreateCompatibleDC(hdc);
-    SelectObject(hdcMem, hBmpBk);
+    /* hDcTmp is another tmp dc, used to store widgets, like background, plane, button,etc. */
+    hDcTmp = CreateCompatibleDC(hdc);
+    SelectObject(hDcTmp, hBmpBk);
 
-    BitBlt(hdcBmp, 0, 0, nBkWidth, nBkHeight,
-        hdcMem, 0, 0, SRCCOPY);
+    BitBlt(hDcMem, 0, 0, nBkWidth, nBkHeight,
+        hDcTmp, 0, 0, SRCCOPY);
 
     GAME_INFO_T * pGame = game_get_game_info();
     assert(pGame != NULL);
@@ -309,24 +309,24 @@ VOID DrawWindow(HDC hdc)
     case WELCOME:
         {
             /* Draw logo */
-            SelectObject(hdcMem, hBmpLogo);
+            SelectObject(hDcTmp, hBmpLogo);
             GetObject(hBmpLogo, sizeof(BITMAP), &bmp);
 
             TransparentBlt(
-                hdcBmp,
+                hDcMem,
                 30, 150, bmp.bmWidth, bmp.bmHeight,
-                hdcMem,
+                hDcTmp,
                 0, 0, bmp.bmWidth, bmp.bmHeight,
                 RGB(255, 255, 255));
 
             /* Draw start button */
-            SelectObject(hdcMem, hBmpStart);
+            SelectObject(hDcTmp, hBmpStart);
             GetObject(hBmpStart, sizeof(BITMAP), &bmp);
 
             TransparentBlt(
-                hdcBmp,
+                hDcMem,
                 120, 350, bmp.bmWidth, bmp.bmHeight,
-                hdcMem,
+                hDcTmp,
                 0, 0, bmp.bmWidth, bmp.bmHeight,
                 RGB(255, 255, 255));
         }
@@ -348,13 +348,13 @@ VOID DrawWindow(HDC hdc)
                 switch (pPlane->type) 
                 {
                 case SMALL:
-                    SelectObject(hdcMem, hBmpSmall);
+                    SelectObject(hDcTmp, hBmpSmall);
                     break;
                 case MIDDLE:
-                    SelectObject(hdcMem, hBmpMiddle);
+                    SelectObject(hDcTmp, hBmpMiddle);
                     break;
                 case BIG:
-                    SelectObject(hdcMem, hBmpBig);
+                    SelectObject(hDcTmp, hBmpBig);
                     break;
                 default:
                     assert(0);
@@ -364,9 +364,9 @@ VOID DrawWindow(HDC hdc)
                 bmp_pos_y = pPlaneType->size_y * (pPlaneType->max_hp - pPlane->hp);
 
                 TransparentBlt(
-                    hdcBmp,
+                    hDcMem,
                     pPlane->pos_x, pPlane->pos_y, pPlaneType->size_x, pPlaneType->size_y,
-                    hdcMem,
+                    hDcTmp,
                     0, bmp_pos_y, pPlaneType->size_x, pPlaneType->size_y,
                     RGB(255, 255, 255));
             }
@@ -375,35 +375,35 @@ VOID DrawWindow(HDC hdc)
     case GAMEOVER:
         {
             /* Draw game over pic */
-            SelectObject(hdcMem, hBmpGameover);
+            SelectObject(hDcTmp, hBmpGameover);
             GetObject(hBmpGameover, sizeof(BITMAP), &bmp);
 
             TransparentBlt(
-                hdcBmp,
+                hDcMem,
                 (nBkWidth - bmp.bmWidth)/2, (nBkHeight - bmp.bmHeight)/2, bmp.bmWidth, bmp.bmHeight,
-                hdcMem,
+                hDcTmp,
                 0, 0, bmp.bmWidth, bmp.bmHeight,
                 RGB(255, 255, 255));
 
             /* Draw restart button */
-            SelectObject(hdcMem, hBmpRestart);
+            SelectObject(hDcTmp, hBmpRestart);
             GetObject(hBmpRestart, sizeof(BITMAP), &bmp);
 
             TransparentBlt(
-                hdcBmp,
+                hDcMem,
                 100, 270, bmp.bmWidth, bmp.bmHeight,
-                hdcMem,
+                hDcTmp,
                 0, 0, bmp.bmWidth, bmp.bmHeight,
                 RGB(255, 255, 255));
 
             /* Draw exit button */
-            SelectObject(hdcMem, hBmpExit);
+            SelectObject(hDcTmp, hBmpExit);
             GetObject(hBmpExit, sizeof(BITMAP), &bmp);
 
             TransparentBlt(
-                hdcBmp,
+                hDcMem,
                 100, 310, bmp.bmWidth, bmp.bmHeight,
-                hdcMem,
+                hDcTmp,
                 0, 0, bmp.bmWidth, bmp.bmHeight,
                 RGB(255, 255, 255));
 
@@ -417,7 +417,7 @@ VOID DrawWindow(HDC hdc)
             lf.lfCharSet = CHINESEBIG5_CHARSET;
 
             hf = CreateFontIndirect(&lf);
-            SelectObject(hdcBmp, hf);
+            SelectObject(hDcMem, hf);
 
             rt.left   = 150;
             rt.top    = 210;
@@ -426,9 +426,9 @@ VOID DrawWindow(HDC hdc)
 
             _itot_s(pGame->score, strScore, 10);
 
-            SetBkMode(hdcBmp, TRANSPARENT);
+            SetBkMode(hDcMem, TRANSPARENT);
 
-            DrawText(hdcBmp, strScore, -1, &rt, DT_CENTER);
+            DrawText(hDcMem, strScore, -1, &rt, DT_CENTER);
         }
         break;
     default:
@@ -436,11 +436,11 @@ VOID DrawWindow(HDC hdc)
     }
 
     /* Blit everything onto screen  */
-    BitBlt(hdc, 0, 0, nBkWidth, nBkHeight, hdcBmp, 0, 0, SRCCOPY);
+    BitBlt(hdc, 0, 0, nBkWidth, nBkHeight, hDcMem, 0, 0, SRCCOPY);
 
-    DeleteObject(cptBmp);
-    DeleteDC(hdcBmp);
-    DeleteDC(hdcMem);
+    DeleteObject(hBmpMem);
+    DeleteDC(hDcMem);
+    DeleteDC(hDcTmp);
 }
 
 BOOL CheckGameStartButtonDown(POINT ptMouse)
