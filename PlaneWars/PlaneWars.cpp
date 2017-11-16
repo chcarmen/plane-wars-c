@@ -2,7 +2,7 @@
 * File name:    PlaneWars.cpp
 * Auther:       RedMonkey
 * Date:         2017/11/21
-* Description:  All function implementation, including entry point into the applicaion
+* Description:  Plane wars game source code
 *****************************************************/
 
 #include "stdafx.h"
@@ -12,7 +12,7 @@
 HINSTANCE         g_hInst;                         /* Defined by default. Current Instance           */
 WCHAR             g_szTitle[MAX_LOADSTRING];       /* Defined by default. Title name                 */
 WCHAR             g_szWindowClass[MAX_LOADSTRING]; /* Defined by default. Class name for main window */
-GAMESTATUS        g_emGameStatus;                  /* Game status                */
+
                                                    /* List all bmp resoures here */
 UINT              g_uiBmpNames[] = { IDB_BK,
                                      IDB_SMALL,
@@ -26,10 +26,10 @@ UINT              g_uiBmpNames[] = { IDB_BK,
                                     };
 
 HBITMAP           g_hBmp[BMPCOUNT];                /* Bmp resource handle        */
-PLANE             g_tPlaneArray[PLANECOUNT];       /* Plane detailed info        */
-BOOL              g_bBigAdded;                     /* If big plane is added      */
-UINT              g_uiScore;                       /* Game score                 */
-UINT              g_uiMusicDeviceID;               /* Music device id            */
+
+GAME              g_tGame;                         /* Game Info                  */
+PLANETYPEINFO     g_tPlaneType[PLANETYPECOUNT];    /* Plane type info            */
+PLANE             g_tPlane[PLANECOUNT];            /* Plane info                 */
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -114,7 +114,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
                              (cxScreen - WNDWIDTH) / 2, 
                              (cyScreen - WNDHEIGHT + 100) / 2,
                              WNDWIDTH, 
-                             WNDHEIGHT + 35,
+                             WNDHEIGHT + 35, /* 35 here is a workaround */
                              nullptr, 
                              nullptr,
                              hInstance, 
@@ -170,10 +170,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_START:
         {
-            memset(g_tPlaneArray, 0, sizeof(g_tPlaneArray));
-            g_bBigAdded    = FALSE;
-            g_emGameStatus = RUN;
-            g_uiScore      = 0;
+            memset(g_tPlane, 0, sizeof(g_tPlane));
+            g_tGame.bigAdded = FALSE;
+            g_tGame.status   = RUN;
+            g_tGame.score    = 0;
 
             UpdatePlaneInfo(TRUE, 0, 2);
 
@@ -254,8 +254,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 *****************************************************/
 VOID InitGame(LPARAM lParam)
 {
-    // Initialize global variables
-    g_emGameStatus = WELCOME;
+    BITMAP      bmp;
 
     // Load bitmap resource
     for (int i = 0; i < BMPCOUNT; i++)
@@ -263,15 +262,34 @@ VOID InitGame(LPARAM lParam)
         g_hBmp[i] = LoadBitmap(((LPCREATESTRUCT)lParam)->hInstance, MAKEINTRESOURCE(g_uiBmpNames[i]));
     }
 
-    // Open mci device
-    MCI_OPEN_PARMS mciOpen;
-    mciOpen.lpstrDeviceType = _T("mpegvideo");
-    mciOpen.lpstrElementName = _T("..//res//Crash.mp3");
+    // Init global variables
+    memset(&g_tGame, 0, sizeof(g_tGame));
 
-    mciSendCommand(0, MCI_OPEN, MCI_OPEN_TYPE | MCI_OPEN_ELEMENT, (DWORD_PTR)&mciOpen);
+    g_tGame.status       = WELCOME;
+    g_tGame.boardSize.cx   = WNDWIDTH;
+    g_tGame.boardSize.cy   = WNDHEIGHT;
+    g_tGame.planeNum     = PLANECOUNT;
+    g_tGame.planeTypeNum = PLANETYPECOUNT;
 
-    g_uiMusicDeviceID = mciOpen.wDeviceID;
+    memset(&g_tPlaneType, 0, sizeof(g_tPlaneType));
 
+    GetObject(g_hBmp[1], sizeof(BITMAP), &bmp);
+    g_tPlaneType[SMALL].type  = SMALL;
+    g_tPlaneType[SMALL].size.cx = bmp.bmWidth;
+    g_tPlaneType[SMALL].size.cy = bmp.bmHeight / 2; // 2 pictures in one bmp file
+    g_tPlaneType[SMALL].maxHC = 1;
+
+    GetObject(g_hBmp[2], sizeof(BITMAP), &bmp);
+    g_tPlaneType[MIDDLE].type  = MIDDLE;
+    g_tPlaneType[MIDDLE].size.cx = bmp.bmWidth;
+    g_tPlaneType[MIDDLE].size.cy = bmp.bmHeight / 3; // 3 pictures in one bmp file
+    g_tPlaneType[MIDDLE].maxHC = 2;
+
+    GetObject(g_hBmp[3], sizeof(BITMAP), &bmp);
+    g_tPlaneType[BIG].type  = BIG;
+    g_tPlaneType[BIG].size.cx = bmp.bmWidth;
+    g_tPlaneType[BIG].size.cy = bmp.bmHeight / 4; // 4 pictures in one bmp file
+    g_tPlaneType[BIG].maxHC = 3;
 }
 
 /******************************************************
@@ -288,14 +306,11 @@ VOID DestroyGame()
     {
         DeleteObject(g_hBmp[i]);
     }
-
-    // Close mci device
-    mciSendCommand(g_uiMusicDeviceID, MCI_CLOSE, NULL, NULL);
 }
 
 /******************************************************
 * Function name:  UpdatePlaneInfo()
-* Purpose:        Update Planes detailed info in g_tPlaneArray[]
+* Purpose:        Update Planes detailed info in g_tPlane[]
 * Input:          
 *    bReset:      If TRUE,update all planes info, if FALSE, update designated plane info
 *    uiIndex:     Index of plane needs to update. Only valid when bReset is FALSE. 
@@ -306,14 +321,13 @@ VOID DestroyGame()
 VOID UpdatePlaneInfo(BOOL bReset, UINT uiIndex, UINT uiSpeed)
 {
     UINT        i, idx, begin, end;
-    BITMAP      bmp;
 
-    assert(uiIndex < PLANECOUNT);
+    assert(uiIndex < g_tGame.planeNum);
 
     if (bReset)
     {
         begin = 0;
-        end   = PLANECOUNT;
+        end   = g_tGame.planeNum;
     }
     else
     {
@@ -329,31 +343,24 @@ VOID UpdatePlaneInfo(BOOL bReset, UINT uiIndex, UINT uiSpeed)
         idx = rand() % 3;
 
         /* Ensure there is only one big plane, idx == 2 only once */
-        while ((idx == 2) && g_bBigAdded)
+        while ((idx == 2) && g_tGame.bigAdded)
         {
             idx = rand() % 3;
         }
 
-        if ((idx == 2) && !g_bBigAdded)
+        if ((idx == 2) && !g_tGame.bigAdded)
         {
-            g_bBigAdded = TRUE;
+            g_tGame.bigAdded = TRUE;
         }
 
-        GetObject(g_hBmp[idx + 1], sizeof(BITMAP), &bmp);
+        g_tPlane[i].type         = (PLANETYPE)idx;
 
-        g_tPlaneArray[i].hBmp      = g_hBmp[idx + 1];
-        g_tPlaneArray[i].type      = (PLANETYPE)idx;
-        g_tPlaneArray[i].size.cx   = bmp.bmWidth;
+        g_tPlane[i].pos.x        = rand() % (g_tGame.boardSize.cx - g_tPlaneType[idx].size.cx);
 
-        /* If small, divided by 2. If middle, divided by 3. If big, devided by 4 */
-        g_tPlaneArray[i].size.cy   = bmp.bmHeight / (idx +2);
-        g_tPlaneArray[i].pos.x     = rand() % (WNDWIDTH - g_tPlaneArray[i].size.cx);
+        /* Initial Y position is outside the client window */
+        g_tPlane[i].pos.y        = - g_tPlaneType[idx].size.cy - rand() % (g_tPlaneType[idx].size.cy * (4 - idx));
 
-        /* Initial position is outside the client window */
-        g_tPlaneArray[i].pos.y     = - g_tPlaneArray[i].size.cy - rand() % (g_tPlaneArray[i].size.cy * (4 - idx));
-
-        /* If speed is 2, moveSpeed is 2(small) ,1(middle),1(big) */
-        g_tPlaneArray[i].moveSpeed = (uiSpeed - idx) ? (uiSpeed - idx) : 1;
+        g_tPlane[i].speed  = (uiSpeed - idx) ? (uiSpeed - idx) : 1;
     }
 }
 
@@ -382,11 +389,12 @@ VOID DrawWindow(HDC hdc)
     LOGFONT    lf;
     RECT       rt;
     TCHAR      strScore[10];
+    int        type;
 
     /* Use Double Buffering method to paint */
 
     /* hBmpMem is a tmp bitmap, used to store all kinds of things */
-    hBmpMem    = CreateCompatibleBitmap(hdc, WNDWIDTH, WNDHEIGHT);
+    hBmpMem    = CreateCompatibleBitmap(hdc, g_tGame.boardSize.cx, g_tGame.boardSize.cy);
 
     /* hdcMem is tmp dc in memory corresponding to hBmpMem */
     hdcMem = CreateCompatibleDC(hdc);
@@ -401,10 +409,10 @@ VOID DrawWindow(HDC hdc)
     /* Draw background */
     SelectObject(hdcTmp, g_hBmp[0]);
 
-    BitBlt(hdcMem, 0, 0, WNDWIDTH, WNDHEIGHT,
+    BitBlt(hdcMem, 0, 0, g_tGame.boardSize.cx, g_tGame.boardSize.cy,
         hdcTmp, 0, 0, SRCCOPY);
 
-    switch (g_emGameStatus)
+    switch (g_tGame.status)
     {
     case WELCOME:
         {
@@ -434,20 +442,36 @@ VOID DrawWindow(HDC hdc)
     case RUN:
         {
             /* Draw planes */
-            for (i = 0; i<PLANECOUNT; i++)
+            for (i = 0; i<g_tGame.planeNum; i++)
             {
-                SelectObject(hdcTmp, g_tPlaneArray[i].hBmp);
+                type = g_tPlane[i].type;
+
+                switch (type)
+                {
+                case SMALL:
+                    SelectObject(hdcTmp, g_hBmp[1]);
+                    break;
+                case MIDDLE:
+                    SelectObject(hdcTmp, g_hBmp[2]);
+                    break;
+                case BIG:
+                    SelectObject(hdcTmp, g_hBmp[3]);
+                    break;
+                default:
+                    assert(0);
+                    break;
+                }
 
                 TransparentBlt(
-                    hdcMem, g_tPlaneArray[i].pos.x, g_tPlaneArray[i].pos.y,
-                    g_tPlaneArray[i].size.cx, g_tPlaneArray[i].size.cy,
-                    hdcTmp, 0, g_tPlaneArray[i].hitCounter * g_tPlaneArray[i].size.cy,
-                    g_tPlaneArray[i].size.cx, g_tPlaneArray[i].size.cy,
+                    hdcMem, g_tPlane[i].pos.x, g_tPlane[i].pos.y,
+                    g_tPlaneType[type].size.cx, g_tPlaneType[type].size.cy,
+                    hdcTmp, 0, g_tPlane[i].hc * g_tPlaneType[type].size.cy,
+                    g_tPlaneType[type].size.cx, g_tPlaneType[type].size.cy,
                     RGB(255, 255, 255));
 
-                if (g_tPlaneArray[i].hitCounter == g_tPlaneArray[i].type + 1)
+                if (g_tPlane[i].hc == g_tPlaneType[type].maxHC)
                 {
-                    g_tPlaneArray[i].hitCounter = -1;
+                    g_tPlane[i].hc = -1;
                 }
             }
         }
@@ -460,7 +484,7 @@ VOID DrawWindow(HDC hdc)
 
             TransparentBlt(
                 hdcMem,
-                (WNDWIDTH - bmp.bmWidth)/2, (WNDHEIGHT - bmp.bmHeight)/2, bmp.bmWidth, bmp.bmHeight,
+                (g_tGame.boardSize.cx - bmp.bmWidth)/2, (g_tGame.boardSize.cy - bmp.bmHeight)/2, bmp.bmWidth, bmp.bmHeight,
                 hdcTmp,
                 0, 0, bmp.bmWidth, bmp.bmHeight,
                 RGB(255, 255, 255));
@@ -504,7 +528,7 @@ VOID DrawWindow(HDC hdc)
             rt.right  = 300;
             rt.bottom = 260;
 
-            _itot_s(g_uiScore, strScore, 10);
+            _itot_s(g_tGame.score, strScore, 10);
 
             SetBkMode(hdcMem, TRANSPARENT);
 
@@ -517,7 +541,7 @@ VOID DrawWindow(HDC hdc)
 
 
     /* Blit everything onto screen  */
-    BitBlt(hdc, 0, 0, WNDWIDTH, WNDHEIGHT, hdcMem, 0, 0, SRCCOPY);
+    BitBlt(hdc, 0, 0, g_tGame.boardSize.cx, g_tGame.boardSize.cy, hdcMem, 0, 0, SRCCOPY);
 
 
     DeleteObject(hBmpMem);
@@ -536,31 +560,35 @@ VOID DrawWindow(HDC hdc)
 *****************************************************/
 VOID TimerProc(HWND hWnd)
 {
-    for (UINT i = 0; i < PLANECOUNT; i++)
+    int type;
+
+    for (UINT i = 0; i < g_tGame.planeNum; i++)
     {
+        type = g_tPlane[i].type;
+
         /* After crash picture is showed, update score and plane info in crash postion */
-        if (g_tPlaneArray[i].hitCounter == -1)
+        if (g_tPlane[i].hc == -1)
         {
-            g_uiScore++;
+            g_tGame.score++;
 
-            g_tPlaneArray[i].hitCounter = 0;
+            g_tPlane[i].hc = 0;
 
-            if (g_tPlaneArray[i].type == BIG)
+            if (type == BIG)
             {
-                g_bBigAdded = FALSE;
+                g_tGame.bigAdded = FALSE;
             }
 
             UpdatePlaneInfo(FALSE, i, 3);
         }
 
-        /* Move down moveSpeed every 50 ms */
-        g_tPlaneArray[i].pos.y += g_tPlaneArray[i].moveSpeed;
+        /* Move down move speed every 50 ms */
+        g_tPlane[i].pos.y += g_tPlane[i].speed;
 
-        if (g_tPlaneArray[i].pos.y + g_tPlaneArray[i].size.cy >= WNDHEIGHT)
+        if (g_tPlane[i].pos.y + g_tPlaneType[type].size.cy >= g_tGame.boardSize.cy)
         {
             KillTimer(hWnd, TIMER);
 
-            g_emGameStatus = GAMEOVER;
+            g_tGame.status = GAMEOVER;
 
             break;
         }
@@ -592,7 +620,7 @@ VOID LButtonDownProc(HWND hWnd, LPARAM lParam)
     ptMouse.y = HIWORD(lParam);
 
 
-    switch (g_emGameStatus)
+    switch (g_tGame.status)
     {
     case WELCOME:
         {
@@ -639,28 +667,32 @@ VOID LButtonDownProc(HWND hWnd, LPARAM lParam)
 *****************************************************/
 VOID Hit(POINT ptMouse)
 {
-    RECT           rc;
-    MCI_PLAY_PARMS mciPlay;
+    RECT  rc;
+    int   type;
 
-    for (UINT i = 0; i<PLANECOUNT; i++)
+    for (UINT i = 0; i<g_tGame.planeNum; i++)
     {
-        rc.left   = g_tPlaneArray[i].pos.x;
-        rc.top    = g_tPlaneArray[i].pos.y;
-        rc.right  = rc.left + g_tPlaneArray[i].size.cx;
-        rc.bottom = rc.top + g_tPlaneArray[i].size.cy;
+        type = g_tPlane[i].type;
+
+        rc.left   = g_tPlane[i].pos.x;
+        rc.top    = g_tPlane[i].pos.y;
+        rc.right  = rc.left + g_tPlaneType[type].size.cx;
+        rc.bottom = rc.top + g_tPlaneType[type].size.cy;
 
         if (PtInRect(&rc, ptMouse))
         {
-            g_tPlaneArray[i].hitCounter++;
+            g_tPlane[i].hc++;
 
-            if (g_tPlaneArray[i].hitCounter > g_tPlaneArray[i].type + 1)
+            if (g_tPlane[i].hc > g_tPlaneType[type].maxHC)
             {
-                g_tPlaneArray[i].hitCounter = g_tPlaneArray[i].type + 1;
+                g_tPlane[i].hc = g_tPlaneType[type].maxHC;
             }
 
             /* Play crash music */
-            mciPlay.dwFrom = 0;
-            mciSendCommand(g_uiMusicDeviceID, MCI_PLAY, MCI_FROM, (DWORD_PTR)&mciPlay);
+            PlaySound(
+                MAKEINTRESOURCE(IDR_WAVE_CRASH),
+                GetModuleHandle(NULL),
+                SND_RESOURCE | SND_ASYNC);
 
             break;
         }
