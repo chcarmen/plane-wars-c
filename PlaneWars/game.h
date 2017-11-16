@@ -44,10 +44,10 @@ typedef struct {
 
 typedef enum {
     HIT = 1,
-} EVENT_T;
+} EVENT_TYPE;
 
 typedef struct {
-    EVENT_T event;
+    EVENT_TYPE event;
     int arg1;
     int arg2;
 } EVENT_INFO_T;

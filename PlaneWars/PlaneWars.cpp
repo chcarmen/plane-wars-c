@@ -229,7 +229,7 @@ VOID InitGame()
     plane_type.size_x = bmp.bmWidth;
     plane_type.size_y = bmp.bmHeight / 2; // 2 pictures in one bmp file
     plane_type.max_hp = 1;
-    plane_type.speed = 2;
+    plane_type.speed = 5;
     ret = game_set_plane_type_info(&plane_type);
     assert(ret == 0);
 
@@ -239,7 +239,7 @@ VOID InitGame()
     plane_type.size_x = bmp.bmWidth;
     plane_type.size_y = bmp.bmHeight / 3; // 3 pictures in one bmp file
     plane_type.max_hp = 2;
-    plane_type.speed = 1;
+    plane_type.speed = 4;
     ret = game_set_plane_type_info(&plane_type);
     assert(ret == 0);
 
@@ -249,7 +249,7 @@ VOID InitGame()
     plane_type.size_x = bmp.bmWidth;
     plane_type.size_y = bmp.bmHeight / 4; // 4 pictures in one bmp file
     plane_type.max_hp = 3;
-    plane_type.speed = 1;
+    plane_type.speed = 3;
     ret = game_set_plane_type_info(&plane_type);
     assert(ret == 0);
 }
