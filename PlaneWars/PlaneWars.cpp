@@ -185,6 +185,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         LButtonDownProc(hWnd, lParam);
         break;
     case WM_DESTROY:
+        UninitGame();
         PostQuitMessage(0);
         break;
     default:
@@ -559,7 +560,6 @@ VOID LButtonDownProc(HWND hWnd, LPARAM lParam)
         /* Check if game exit button is clicked */
         if (CheckGameExitButtonDown(ptMouse))
         {
-            UninitGame();
             SendMessage(hWnd, WM_CLOSE, 0, 0);
         }
         break;
