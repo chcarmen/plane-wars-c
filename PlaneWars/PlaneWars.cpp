@@ -265,31 +265,31 @@ VOID InitGame(LPARAM lParam)
     // Init global variables
     memset(&g_tGame, 0, sizeof(g_tGame));
 
-    g_tGame.status       = WELCOME;
+    g_tGame.status         = WELCOME;
     g_tGame.boardSize.cx   = WNDWIDTH;
     g_tGame.boardSize.cy   = WNDHEIGHT;
-    g_tGame.planeNum     = PLANECOUNT;
-    g_tGame.planeTypeNum = PLANETYPECOUNT;
+    g_tGame.planeNum       = PLANECOUNT;
+    g_tGame.planeTypeNum   = PLANETYPECOUNT;
 
     memset(&g_tPlaneType, 0, sizeof(g_tPlaneType));
 
     GetObject(g_hBmp[1], sizeof(BITMAP), &bmp);
-    g_tPlaneType[SMALL].type  = SMALL;
-    g_tPlaneType[SMALL].size.cx = bmp.bmWidth;
-    g_tPlaneType[SMALL].size.cy = bmp.bmHeight / 2; // 2 pictures in one bmp file
-    g_tPlaneType[SMALL].maxHC = 1;
+    g_tPlaneType[SMALL].type     = SMALL;
+    g_tPlaneType[SMALL].size.cx  = bmp.bmWidth;
+    g_tPlaneType[SMALL].size.cy  = bmp.bmHeight / 2; // 2 pictures in one bmp file
+    g_tPlaneType[SMALL].maxHC    = 1;
 
     GetObject(g_hBmp[2], sizeof(BITMAP), &bmp);
-    g_tPlaneType[MIDDLE].type  = MIDDLE;
+    g_tPlaneType[MIDDLE].type    = MIDDLE;
     g_tPlaneType[MIDDLE].size.cx = bmp.bmWidth;
     g_tPlaneType[MIDDLE].size.cy = bmp.bmHeight / 3; // 3 pictures in one bmp file
-    g_tPlaneType[MIDDLE].maxHC = 2;
+    g_tPlaneType[MIDDLE].maxHC   = 2;
 
     GetObject(g_hBmp[3], sizeof(BITMAP), &bmp);
-    g_tPlaneType[BIG].type  = BIG;
-    g_tPlaneType[BIG].size.cx = bmp.bmWidth;
-    g_tPlaneType[BIG].size.cy = bmp.bmHeight / 4; // 4 pictures in one bmp file
-    g_tPlaneType[BIG].maxHC = 3;
+    g_tPlaneType[BIG].type       = BIG;
+    g_tPlaneType[BIG].size.cx    = bmp.bmWidth;
+    g_tPlaneType[BIG].size.cy    = bmp.bmHeight / 4; // 4 pictures in one bmp file
+    g_tPlaneType[BIG].maxHC      = 3;
 }
 
 /******************************************************
@@ -353,14 +353,11 @@ VOID UpdatePlaneInfo(BOOL bReset, UINT uiIndex, UINT uiSpeed)
             g_tGame.bigAdded = TRUE;
         }
 
-        g_tPlane[i].type         = (PLANETYPE)idx;
-
-        g_tPlane[i].pos.x        = rand() % (g_tGame.boardSize.cx - g_tPlaneType[idx].size.cx);
-
+        g_tPlane[i].type     = (PLANETYPE)idx;
+        g_tPlane[i].pos.x    = rand() % (g_tGame.boardSize.cx - g_tPlaneType[idx].size.cx);
         /* Initial Y position is outside the client window */
-        g_tPlane[i].pos.y        = - g_tPlaneType[idx].size.cy - rand() % (g_tPlaneType[idx].size.cy * (4 - idx));
-
-        g_tPlane[i].speed  = (uiSpeed - idx) ? (uiSpeed - idx) : 1;
+        g_tPlane[i].pos.y    = - g_tPlaneType[idx].size.cy - rand() % (g_tPlaneType[idx].size.cy * (4 - idx));
+        g_tPlane[i].speed    = (uiSpeed - idx) ? (uiSpeed - idx) : 1;
     }
 }
 
@@ -397,13 +394,13 @@ VOID DrawWindow(HDC hdc)
     hBmpMem    = CreateCompatibleBitmap(hdc, g_tGame.boardSize.cx, g_tGame.boardSize.cy);
 
     /* hdcMem is tmp dc in memory corresponding to hBmpMem */
-    hdcMem = CreateCompatibleDC(hdc);
+    hdcMem     = CreateCompatibleDC(hdc);
 
     SelectObject(hdcMem, hBmpMem);
 
 
     /* hdcTmp is another tmp dc, used to store widgets, like background, plane, button,etc. */
-    hdcTmp = CreateCompatibleDC(hdc);
+    hdcTmp     = CreateCompatibleDC(hdc);
 
 
     /* Draw background */
@@ -512,13 +509,13 @@ VOID DrawWindow(HDC hdc)
                 RGB(255, 255, 255));
 
             /* Draw score */
-            lf.lfHeight = 25;
-            lf.lfWidth = 25;
+            lf.lfHeight     = 25;
+            lf.lfWidth      = 25;
             lf.lfEscapement = 0;
-            lf.lfItalic = FALSE;
-            lf.lfUnderline = FALSE;
-            lf.lfStrikeOut = FALSE;
-            lf.lfCharSet = CHINESEBIG5_CHARSET;
+            lf.lfItalic     = FALSE;
+            lf.lfUnderline  = FALSE;
+            lf.lfStrikeOut  = FALSE;
+            lf.lfCharSet    = CHINESEBIG5_CHARSET;
 
             hf = CreateFontIndirect(&lf);
             SelectObject(hdcMem, hf);
@@ -672,7 +669,7 @@ VOID Hit(POINT ptMouse)
 
     for (UINT i = 0; i<g_tGame.planeNum; i++)
     {
-        type = g_tPlane[i].type;
+        type      = g_tPlane[i].type;
 
         rc.left   = g_tPlane[i].pos.x;
         rc.top    = g_tPlane[i].pos.y;
