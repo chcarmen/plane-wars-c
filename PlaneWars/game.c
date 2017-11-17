@@ -173,11 +173,11 @@ void game_tick_handler(void)
     // process events from ui
     process_events();
 
-    // move all planes regularly
-    move_planes_regularly();
-
     // game over if plane reaches the bottom
     check_game_over();
+
+    // move all planes regularly
+    move_planes_regularly();
 }
 
 int  game_set_board_size(int width, int height)
