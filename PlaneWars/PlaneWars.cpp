@@ -1,5 +1,9 @@
-// PlaneWars.cpp : 定义应用程序的入口点。
-//
+/******************************************************
+* File name:    PlaneWars.cpp
+* Auther:       RedMonkey
+* Date:         2017/11/17
+* Description:  Plane wars game source code
+*****************************************************/
 
 #include "stdafx.h"
 #include "PlaneWars.h"

@@ -1,3 +1,10 @@
+/******************************************************
+* File name:    game.c
+* Auther:       RedMonkey
+* Date:         2017/11/17
+* Description:  Plane wars game source code
+*****************************************************/
+
 #include "game.h"
 #include <stdio.h>
 #include <time.h>

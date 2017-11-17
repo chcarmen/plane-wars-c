@@ -1,3 +1,10 @@
+/******************************************************
+* File name:    game.h
+* Auther:       RedMonkey
+* Date:         2017/11/17
+* Description:  Plane wars game source code
+*****************************************************/
+
 #ifndef __GAME_H__
 #define __GAME_H__
 
