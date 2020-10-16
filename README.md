@@ -1,4 +1,4 @@
-# PlaneWars
+# plane_wars
 
 PlaneWars is a desktop 2D game on Windows, which is implemented in C using windows api.
 
